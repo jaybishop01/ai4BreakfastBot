@@ -1,0 +1,9 @@
+config.json
+state.json
+app.log
+audio/
+*.m4a
+*.mp3
+__pycache__/
+*.pyc
+.env
