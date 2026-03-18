@@ -116,8 +116,8 @@ def run_digest(urls, state, config):
     # 5. Generate audio
     nlm.create_audio(notebook_id, fmt="deep_dive", length="default", focus=focus)
 
-    # 6. Poll until complete
-    nlm.poll_status(notebook_id)
+    # 6. Poll until complete (deep_dive can take >10 min)
+    nlm.poll_status(notebook_id, max_secs=1200)
 
     # 7. Download
     m4a_path = os.path.join(AUDIO_DIR, f"ai4breakfast-{date.today().isoformat()}.m4a")

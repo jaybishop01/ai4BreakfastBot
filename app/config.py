@@ -1,5 +1,6 @@
 """Configuration and constants for AI for Breakfast automation."""
 
+import glob
 import json
 import os
 
@@ -11,7 +12,20 @@ PRIMER_PATH = os.path.join(BASE_DIR, "dbt_primer.md")
 
 NLM_PATH = "/Users/jaybishop/.local/bin/nlm"
 FFMPEG_PATH = "/opt/homebrew/bin/ffmpeg"
-CLAUDE_PATH = "/Users/jaybishop/.vscode/extensions/anthropic.claude-code-2.1.76-darwin-arm64/resources/native-binary/claude"
+
+
+def _find_claude_path():
+    """Resolve the Claude CLI binary from the VS Code extension directory, picking the latest version."""
+    pattern = os.path.expanduser(
+        "~/.vscode/extensions/anthropic.claude-code-*/resources/native-binary/claude"
+    )
+    matches = sorted(glob.glob(pattern))
+    if matches:
+        return matches[-1]
+    return "claude"  # fallback to PATH
+
+
+CLAUDE_PATH = _find_claude_path()
 
 JOE_USER_ID = "U0847KPJA2K"
 CHANNEL_ID = "C0AJAFD7CLB"
