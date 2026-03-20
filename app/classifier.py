@@ -88,12 +88,15 @@ def extract_company(url):
     return "Unknown"
 
 
+CURATOR_EMOJI = "studio_microphone"
+
+
 def classify_messages(messages, joe_user_id):
     """Classify Slack messages into daily digest URLs and PG alert entries.
 
     Args:
         messages: list of Slack message dicts (from conversations.history)
-        joe_user_id: only process messages from this user
+        joe_user_id: only process messages from this user (for direct posts and PG alerts)
 
     Returns:
         (digest_urls, pg_alerts) where:
@@ -102,16 +105,29 @@ def classify_messages(messages, joe_user_id):
     """
     digest_urls = []
     pg_alerts = []
+    seen_urls = set()
 
     for msg in messages:
-        # Filter to Joe's messages only
-        if msg.get("user") != joe_user_id:
-            continue
-
         text = msg.get("text", "")
         ts = msg.get("ts", "")
-        urls = extract_urls(text)
+        reactions = msg.get("reactions", [])
+        from_joe = msg.get("user") == joe_user_id
 
+        # Any message with :studio_microphone: reaction gets its URLs added to the digest
+        if CURATOR_EMOJI in reactions:
+            urls = extract_urls(text)
+            for url in urls:
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    digest_urls.append(url)
+                    log.info("Curator-picked URL from message %s: %s", ts, url)
+            continue
+
+        # For Joe's own messages, apply existing digest/PG alert logic
+        if not from_joe:
+            continue
+
+        urls = extract_urls(text)
         if not urls:
             continue
 
@@ -128,7 +144,10 @@ def classify_messages(messages, joe_user_id):
             else:
                 log.warning("PG Alert message missing user tag or URL: %s", ts)
         else:
-            digest_urls.extend(urls)
+            for url in urls:
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    digest_urls.append(url)
             log.info("Digest URLs from message %s: %s", ts, urls)
 
     log.info("Classification complete: %d digest URLs, %d PG alerts", len(digest_urls), len(pg_alerts))

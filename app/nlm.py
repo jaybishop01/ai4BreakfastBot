@@ -82,6 +82,12 @@ def add_url_sources(notebook_id, urls):
     log.info("Added %d/%d URL sources (individual)", added, len(urls))
 
 
+def list_sources(notebook_id):
+    """List sources in a notebook. Returns list of source dicts."""
+    stdout, _ = _run(["source", "list", notebook_id, "--json"], timeout=60)
+    return json.loads(stdout)
+
+
 def add_file_source(notebook_id, filepath, title):
     """Add a local file as a source to a notebook."""
     _run(["source", "add", notebook_id, "--file", filepath, "--title", title, "--wait"], timeout=120)

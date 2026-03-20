@@ -84,8 +84,12 @@ def get_channel_messages(channel_id, oldest_ts):
         f'Use the mcp__slack__slack_read_channel tool to read messages from channel "{channel_id}" '
         f'with oldest="{oldest_ts}" and limit=100. '
         f'Then return ONLY a JSON array where each element has: '
-        f'"user" (the user ID like U0847KPJA2K), "ts" (the Message TS string), '
-        f'"text" (the full message text). '
+        f'"user" (the raw Slack user ID string like U0847KPJA2K, NOT the display name), '
+        f'"ts" (the Message TS string), '
+        f'"text" (the COMPLETE raw message text exactly as returned by Slack, '
+        f'preserving all Slack formatting including <https://url> and <https://url|display> link syntax — '
+        f'do NOT convert links to plain text or markdown), '
+        f'"reactions" (a list of emoji name strings from the message reactions, e.g. ["studio_microphone", "+1"], or [] if none). '
         f'Return ONLY valid JSON, no explanation. If no messages, return [].'
     )
 

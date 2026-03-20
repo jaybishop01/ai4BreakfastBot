@@ -10,6 +10,7 @@ from . import slack_reader
 from . import nlm
 from . import audio as audio_mod
 from . import gong
+from . import archiver
 from .classifier import extract_company
 from .state import (
     record_notebook,
@@ -103,6 +104,10 @@ def run_digest(urls, state, config):
     # 2. Add URL sources
     nlm.add_url_sources(notebook_id, urls)
 
+    # 2a. Retry any paywalled/failed sources via archive fallback
+    failed_urls = set(archiver.resolve_failed_sources(notebook_id, urls))
+    resolved_urls = [u for u in urls if u not in failed_urls]
+
     # 3. Add dbt primer as file source
     nlm.add_file_source(notebook_id, PRIMER_PATH, "dbt Labs Context")
 
@@ -130,12 +135,13 @@ def run_digest(urls, state, config):
         log.warning("MP3 conversion failed, uploading m4a")
         mp3_path = m4a_path
 
-    # 9. Build Slack comment
-    bullets = "\n".join(f"* {url}" for url in urls)
+    # 9. Build Slack comment (only list articles that actually loaded)
+    display_urls = resolved_urls if resolved_urls else urls
+    bullets = "\n".join(f"* {url}" for url in display_urls)
     comment = DIGEST_COMMENT_TEMPLATE.format(
         date=today,
-        n=len(urls),
-        s="" if len(urls) == 1 else "s",
+        n=len(display_urls),
+        s="" if len(display_urls) == 1 else "s",
         bullets=bullets,
     )
 
@@ -196,6 +202,7 @@ def run_pg_alert(alert, state, config):
     # 5. Add article URL as source
     try:
         nlm.add_url_sources(notebook_id, [url])
+        archiver.resolve_failed_sources(notebook_id, [url])
     except nlm.NLMError:
         log.warning("Failed to add article URL, continuing with primer only")
 
