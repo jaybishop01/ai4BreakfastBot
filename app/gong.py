@@ -1,9 +1,50 @@
-"""Gong/Glean context lookup via Claude CLI shell-out."""
+"""Gong/Glean context lookup and article analysis via Claude CLI shell-out."""
 
 import subprocess
 
 from .config import CLAUDE_PATH
 from .log import log
+
+
+def extract_company_from_article(url):
+    """Use Claude CLI to determine the subject company of a news article.
+
+    Returns the company name (str) or None on failure.
+    """
+    prompt = (
+        f"Fetch the page at {url} and determine which company or organization "
+        f"is the primary subject of this article. Respond with ONLY the company "
+        f"name — no explanation, no punctuation, no quotes. If you cannot determine "
+        f"the company, respond with exactly: UNKNOWN"
+    )
+
+    try:
+        log.info("Extracting subject company from article: %s", url)
+        result = subprocess.run(
+            [CLAUDE_PATH, "--print", "-p", prompt],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        stdout = result.stdout.strip()
+        if not stdout or "UNKNOWN" in stdout or result.returncode != 0:
+            log.info("Could not extract company from article")
+            return None
+
+        company = stdout.split("\n")[0].strip()[:100]
+        log.info("Extracted company from article: %s", company)
+        return company
+
+    except subprocess.TimeoutExpired:
+        log.warning("Claude CLI timed out extracting company from article")
+        return None
+    except FileNotFoundError:
+        log.warning("Claude CLI not found at %s", CLAUDE_PATH)
+        return None
+    except Exception as e:
+        log.warning("Article company extraction error: %s", e)
+        return None
 
 
 def lookup_gong_context(rep_name, company):

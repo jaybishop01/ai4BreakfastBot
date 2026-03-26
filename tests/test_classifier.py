@@ -72,34 +72,37 @@ class TestParseTaggedUser:
 
 class TestExtractCompany:
     def test_known_domain(self):
-        assert extract_company("https://cox.com/article") == "Cox Automotive"
+        assert extract_company("https://cox.com/article") == ("Cox Automotive", True)
 
     def test_known_domain_with_www(self):
-        assert extract_company("https://www.delta.com/news") == "Delta Air Lines"
+        assert extract_company("https://www.delta.com/news") == ("Delta Air Lines", True)
 
     def test_known_subdomain(self):
-        assert extract_company("https://careers.hilton.com/jobs") == "Hilton"
+        assert extract_company("https://careers.hilton.com/jobs") == ("Hilton", True)
 
     def test_unknown_domain_fallback(self):
-        result = extract_company("https://somecompany.com/page")
-        assert result == "Somecompany"
+        company, known = extract_company("https://somecompany.com/page")
+        assert company == "Somecompany"
+        assert known is False
 
     def test_hyphenated_domain_fallback(self):
-        result = extract_company("https://my-company.com/page")
-        assert result == "My Company"
+        company, known = extract_company("https://my-company.com/page")
+        assert company == "My Company"
+        assert known is False
 
     def test_strategy_com(self):
         # The domain that triggered today's bug
-        result = extract_company("https://www.strategy.com/software/customer-stories/diageo")
-        assert result == "Strategy"
+        company, known = extract_company("https://www.strategy.com/software/customer-stories/diageo")
+        assert company == "Strategy"
+        assert known is False
 
     def test_invalid_url(self):
         # urlparse("not-a-url") has no hostname, so domain="" → title("") → ""
-        result = extract_company("not-a-url")
-        assert isinstance(result, str)  # doesn't raise
+        company, known = extract_company("not-a-url")
+        assert isinstance(company, str)  # doesn't raise
 
     def test_known_domain_coxautoinc(self):
-        assert extract_company("https://coxautoinc.com/page") == "Cox Automotive"
+        assert extract_company("https://coxautoinc.com/page") == ("Cox Automotive", True)
 
 
 # ---------------------------------------------------------------------------

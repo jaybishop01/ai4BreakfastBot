@@ -65,7 +65,10 @@ def parse_tagged_user(text):
 
 
 def extract_company(url):
-    """Extract company name from URL domain. Uses known mapping, falls back to domain name."""
+    """Extract company name from URL domain. Uses known mapping, falls back to domain name.
+
+    Returns (company_name, from_known_domain) tuple.
+    """
     try:
         parsed = urlparse(url)
         domain = parsed.hostname or ""
@@ -76,16 +79,16 @@ def extract_company(url):
         # Check known companies
         for known_domain, company in KNOWN_COMPANIES.items():
             if domain == known_domain or domain.endswith("." + known_domain):
-                return company
+                return company, True
 
         # Fallback: title-case the main domain part
         parts = domain.rsplit(".", 1)
         if len(parts) >= 1:
             name = parts[0].replace("-", " ").replace("_", " ").title()
-            return name
+            return name, False
     except Exception:
         pass
-    return "Unknown"
+    return "Unknown", False
 
 
 CURATOR_EMOJI = "studio_microphone"

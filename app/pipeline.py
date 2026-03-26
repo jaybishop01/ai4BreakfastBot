@@ -189,8 +189,13 @@ def run_pg_alert(alert, state, config):
     rep_name = slack_reader.get_user_name(tagged_user_id)
     log.info("Rep: %s (%s)", rep_name, tagged_user_id)
 
-    # 2. Extract company from URL
-    company = extract_company(url)
+    # 2. Extract company from URL (known domain) or article content (third-party site)
+    company, from_known_domain = extract_company(url)
+    if not from_known_domain and company not in ("Unknown",):
+        log.info("Domain fallback returned '%s' — extracting subject from article", company)
+        article_company = gong.extract_company_from_article(url)
+        if article_company:
+            company = article_company
     log.info("Company: %s", company)
 
     # 3. Gong/Glean lookup via Claude
