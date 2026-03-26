@@ -119,7 +119,7 @@ def run_digest(urls, state, config):
     focus = DIGEST_FOCUS_TEMPLATE.format(feedback_section=feedback_section)
 
     # 5. Generate audio
-    nlm.create_audio(notebook_id, fmt="deep_dive", length="default", focus=focus)
+    nlm.create_audio(notebook_id, fmt="deep_dive", length="short", focus=focus)
 
     # 6. Poll until complete (deep_dive can take >10 min)
     nlm.poll_status(notebook_id, max_secs=1200)
@@ -200,11 +200,18 @@ def run_pg_alert(alert, state, config):
     notebook_id = nlm.create_notebook(f"PG Alert -- {company} -- {today}")
 
     # 5. Add article URL as source
+    article_loaded = False
     try:
         nlm.add_url_sources(notebook_id, [url])
-        archiver.resolve_failed_sources(notebook_id, [url])
+        failed_urls = archiver.resolve_failed_sources(notebook_id, [url])
+        article_loaded = len(failed_urls) == 0
     except nlm.NLMError:
-        log.warning("Failed to add article URL, continuing with primer only")
+        log.warning("Failed to add article URL")
+
+    if not article_loaded:
+        log.warning("No article content loaded for PG Alert %s — skipping post", url)
+        log.info("=== PG Alert skipped (no article content): %s ===", company)
+        return
 
     # 6. Add dbt primer
     nlm.add_file_source(notebook_id, PRIMER_PATH, "dbt Labs Context")
@@ -240,7 +247,7 @@ def run_pg_alert(alert, state, config):
     )
 
     # 9. Generate audio (brief/short)
-    nlm.create_audio(notebook_id, fmt="brief", length="short", focus=focus)
+    nlm.create_audio(notebook_id, fmt="brief", length="default", focus=focus)
 
     # 10. Poll until complete
     nlm.poll_status(notebook_id)
